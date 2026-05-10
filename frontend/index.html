@@ -1,0 +1,1133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>NeuraX — Control Technology With Thought</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Exo+2:wght@300;400;600;800&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg:        #020b14;
+    --surface:   #061626;
+    --border:    #0d3a5c;
+    --accent:    #00d4ff;
+    --accent2:   #7b2fff;
+    --green:     #00ff88;
+    --red:       #ff3b6b;
+    --yellow:    #ffcc00;
+    --text:      #c8e8f8;
+    --muted:     #3a6080;
+    --font-mono: 'Share Tech Mono', monospace;
+    --font-main: 'Exo 2', sans-serif;
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-main);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── Animated grid background ── */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0,212,255,.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,212,255,.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ── Scanline overlay ── */
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0,0,0,.08) 2px,
+      rgba(0,0,0,.08) 4px
+    );
+    pointer-events: none;
+    z-index: 1000;
+  }
+
+  /* ── Header ── */
+  header {
+    position: relative;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 32px;
+    border-bottom: 1px solid var(--border);
+    background: rgba(2,11,20,.9);
+    backdrop-filter: blur(12px);
+  }
+
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .logo-icon {
+    width: 36px;
+    height: 36px;
+    position: relative;
+  }
+
+  .logo-icon svg { width: 100%; height: 100%; }
+
+  .logo-text {
+    font-family: var(--font-main);
+    font-weight: 800;
+    font-size: 1.5rem;
+    letter-spacing: 4px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .logo-tag {
+    font-family: var(--font-mono);
+    font-size: .65rem;
+    color: var(--muted);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+
+  .status-bar {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    font-family: var(--font-mono);
+    font-size: .75rem;
+  }
+
+  .status-pill {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 12px;
+    border-radius: 20px;
+    border: 1px solid;
+  }
+
+  .status-pill.online { border-color: var(--green); color: var(--green); }
+  .status-pill.offline { border-color: var(--red); color: var(--red); }
+
+  .dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    animation: pulse 2s infinite;
+  }
+
+  .online .dot { background: var(--green); }
+  .offline .dot { background: var(--red); animation: none; }
+
+  @keyframes pulse {
+    0%,100% { opacity:1; transform:scale(1); }
+    50% { opacity:.4; transform:scale(.8); }
+  }
+
+  /* ── Layout ── */
+  main {
+    position: relative;
+    z-index: 10;
+    display: grid;
+    grid-template-columns: 1fr 340px;
+    grid-template-rows: auto auto;
+    gap: 20px;
+    padding: 24px 32px;
+    max-width: 1400px;
+    margin: 0 auto;
+  }
+
+  /* ── Card ── */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+  }
+
+  .card-title {
+    font-family: var(--font-mono);
+    font-size: .7rem;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .card-title::before {
+    content: '//';
+    color: var(--accent2);
+  }
+
+  /* ── Signal Canvas ── */
+  #signalCanvas {
+    width: 100%;
+    height: 160px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    background: #010a11;
+    display: block;
+  }
+
+  /* ── Controls ── */
+  .controls {
+    display: flex;
+    gap: 12px;
+    margin-top: 14px;
+    flex-wrap: wrap;
+  }
+
+  .btn {
+    font-family: var(--font-mono);
+    font-size: .75rem;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    padding: 9px 20px;
+    border-radius: 4px;
+    border: 1px solid;
+    cursor: pointer;
+    transition: all .2s;
+    background: transparent;
+  }
+
+  .btn-primary {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+  .btn-primary:hover {
+    background: rgba(0,212,255,.12);
+    box-shadow: 0 0 16px rgba(0,212,255,.25);
+  }
+
+  .btn-secondary {
+    border-color: var(--accent2);
+    color: var(--accent2);
+  }
+  .btn-secondary:hover {
+    background: rgba(123,47,255,.12);
+    box-shadow: 0 0 16px rgba(123,47,255,.25);
+  }
+
+  .btn-danger {
+    border-color: var(--red);
+    color: var(--red);
+  }
+  .btn-danger:hover { background: rgba(255,59,107,.1); }
+
+  .btn:disabled {
+    opacity: .4;
+    cursor: not-allowed;
+  }
+
+  /* ── Command display ── */
+  .command-display {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 28px 20px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: #010a11;
+    margin-top: 16px;
+    min-height: 130px;
+    position: relative;
+  }
+
+  .command-label {
+    font-family: var(--font-mono);
+    font-size: .65rem;
+    letter-spacing: 3px;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+
+  .command-name {
+    font-family: var(--font-main);
+    font-weight: 800;
+    font-size: 2rem;
+    letter-spacing: 6px;
+    text-transform: uppercase;
+    transition: all .3s;
+  }
+
+  .command-name.idle        { color: var(--muted); }
+  .command-name.cursor_left { color: var(--accent); }
+  .command-name.cursor_right{ color: var(--accent2); }
+  .command-name.select      { color: var(--green); }
+
+  .command-name.flash {
+    animation: flash .4s ease;
+  }
+
+  @keyframes flash {
+    0%   { transform: scale(1); }
+    30%  { transform: scale(1.08); }
+    100% { transform: scale(1); }
+  }
+
+  .confidence-bar-wrap {
+    width: 100%;
+    margin-top: 14px;
+  }
+
+  .confidence-label {
+    display: flex;
+    justify-content: space-between;
+    font-family: var(--font-mono);
+    font-size: .65rem;
+    color: var(--muted);
+    margin-bottom: 5px;
+  }
+
+  .confidence-bar {
+    height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .confidence-fill {
+    height: 100%;
+    border-radius: 2px;
+    background: linear-gradient(90deg, var(--accent), var(--green));
+    transition: width .5s ease;
+    width: 0%;
+  }
+
+  /* ── Probability bars ── */
+  .prob-grid { display: flex; flex-direction: column; gap: 10px; margin-top: 4px; }
+
+  .prob-row { display: flex; align-items: center; gap: 10px; }
+
+  .prob-name {
+    font-family: var(--font-mono);
+    font-size: .7rem;
+    width: 110px;
+    color: var(--text);
+    letter-spacing: 1px;
+  }
+
+  .prob-bar-bg {
+    flex: 1;
+    height: 18px;
+    background: #010a11;
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .prob-bar-fill {
+    height: 100%;
+    border-radius: 2px;
+    transition: width .5s ease;
+    position: relative;
+  }
+
+  .prob-val {
+    font-family: var(--font-mono);
+    font-size: .65rem;
+    width: 38px;
+    text-align: right;
+    color: var(--muted);
+  }
+
+  /* ── Virtual cursor ── */
+  .cursor-arena {
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: #010a11;
+    height: 180px;
+    position: relative;
+    overflow: hidden;
+    margin-top: 4px;
+  }
+
+  .cursor-arena-label {
+    font-family: var(--font-mono);
+    font-size: .6rem;
+    letter-spacing: 2px;
+    color: var(--muted);
+    position: absolute;
+    top: 8px; left: 10px;
+  }
+
+  .virtual-cursor {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: var(--accent);
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    transition: left .4s cubic-bezier(.34,1.56,.64,1);
+    box-shadow: 0 0 16px var(--accent), 0 0 40px rgba(0,212,255,.3);
+  }
+
+  .cursor-target {
+    width: 30px; height: 30px;
+    border-radius: 50%;
+    border: 1px solid var(--green);
+    position: absolute;
+    top: 50%; right: 40px;
+    transform: translateY(-50%);
+    display: flex; align-items: center; justify-content: center;
+    font-size: .55rem;
+    font-family: var(--font-mono);
+    color: var(--green);
+  }
+
+  .cursor-trail {
+    position: absolute;
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--accent);
+    opacity: .3;
+    pointer-events: none;
+    transition: left .4s;
+  }
+
+  /* ── Log ── */
+  .log-scroll {
+    max-height: 160px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+
+  .log-entry {
+    font-family: var(--font-mono);
+    font-size: .68rem;
+    padding: 4px 0;
+    border-bottom: 1px solid rgba(13,58,92,.4);
+    display: flex;
+    gap: 10px;
+    animation: slideIn .2s ease;
+  }
+
+  @keyframes slideIn {
+    from { opacity:0; transform:translateX(-8px); }
+    to   { opacity:1; transform:translateX(0); }
+  }
+
+  .log-time  { color: var(--muted); flex-shrink: 0; }
+  .log-cmd   { flex: 1; }
+  .log-cmd.idle         { color: var(--muted); }
+  .log-cmd.cursor_left  { color: var(--accent); }
+  .log-cmd.cursor_right { color: var(--accent2); }
+  .log-cmd.select       { color: var(--green); }
+  .log-conf  { color: var(--muted); }
+
+  /* ── Stats grid ── */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-top: 4px;
+  }
+
+  .stat-box {
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 12px;
+    background: #010a11;
+    text-align: center;
+  }
+
+  .stat-val {
+    font-family: var(--font-mono);
+    font-size: 1.4rem;
+    font-weight: 600;
+    color: var(--accent);
+    display: block;
+  }
+
+  .stat-label {
+    font-family: var(--font-mono);
+    font-size: .6rem;
+    letter-spacing: 2px;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-top: 4px;
+    display: block;
+  }
+
+  /* ── Sidebar ── */
+  .sidebar {
+    grid-column: 2;
+    grid-row: 1 / 3;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  /* ── Noise slider ── */
+  .slider-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 12px;
+  }
+
+  .slider-row label {
+    font-family: var(--font-mono);
+    font-size: .7rem;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+
+  input[type=range] {
+    flex: 1;
+    accent-color: var(--accent);
+    cursor: pointer;
+  }
+
+  .slider-val {
+    font-family: var(--font-mono);
+    font-size: .7rem;
+    color: var(--accent);
+    width: 28px;
+    text-align: right;
+  }
+
+  /* ── Command buttons ── */
+  .cmd-buttons {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-top: 10px;
+  }
+
+  .cmd-btn {
+    padding: 10px 8px;
+    font-family: var(--font-mono);
+    font-size: .65rem;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text);
+    cursor: pointer;
+    transition: all .2s;
+    text-align: center;
+  }
+
+  .cmd-btn:hover { border-color: var(--accent); color: var(--accent); background: rgba(0,212,255,.06); }
+  .cmd-btn.active { border-color: var(--green); color: var(--green); background: rgba(0,255,136,.08); }
+
+  /* ── Footer ── */
+  footer {
+    position: relative;
+    z-index: 10;
+    text-align: center;
+    padding: 14px;
+    font-family: var(--font-mono);
+    font-size: .65rem;
+    color: var(--muted);
+    border-top: 1px solid var(--border);
+    letter-spacing: 2px;
+  }
+
+  /* ── Glowing line ── */
+  .glow-line {
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--accent), transparent);
+    margin: 6px 0;
+    opacity: .4;
+  }
+
+  /* ── Auto-run indicator ── */
+  .auto-badge {
+    font-family: var(--font-mono);
+    font-size: .6rem;
+    padding: 3px 8px;
+    border-radius: 10px;
+    border: 1px solid var(--yellow);
+    color: var(--yellow);
+    letter-spacing: 1px;
+  }
+
+  @media (max-width: 900px) {
+    main { grid-template-columns: 1fr; }
+    .sidebar { grid-column: 1; grid-row: auto; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ══ Header ══════════════════════════════════════════════════════════════ -->
+<header>
+  <div class="logo">
+    <div class="logo-icon">
+      <svg viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="18" cy="18" r="17" stroke="#00d4ff" stroke-width="1.2" stroke-dasharray="4 2"/>
+        <circle cx="18" cy="18" r="9" stroke="#7b2fff" stroke-width="1"/>
+        <circle cx="18" cy="18" r="3" fill="#00d4ff"/>
+        <line x1="18" y1="1" x2="18" y2="9" stroke="#00d4ff" stroke-width="1.2"/>
+        <line x1="18" y1="27" x2="18" y2="35" stroke="#00d4ff" stroke-width="1.2"/>
+        <line x1="1" y1="18" x2="9" y2="18" stroke="#7b2fff" stroke-width="1.2"/>
+        <line x1="27" y1="18" x2="35" y2="18" stroke="#7b2fff" stroke-width="1.2"/>
+      </svg>
+    </div>
+    <div>
+      <div class="logo-text">NEURAX</div>
+      <div class="logo-tag">Brain-Computer Interface v1.0</div>
+    </div>
+  </div>
+  <div class="status-bar">
+    <span id="apiStatus" class="status-pill offline">
+      <span class="dot"></span>
+      <span id="apiStatusText">API OFFLINE</span>
+    </span>
+    <span id="uptimeDisplay" style="color:var(--muted);">UPTIME: --</span>
+  </div>
+</header>
+
+<!-- ══ Main ════════════════════════════════════════════════════════════════ -->
+<main>
+
+  <!-- ── Col 1 Row 1: Signal + Command ── -->
+  <div style="display:flex; flex-direction:column; gap:20px;">
+
+    <!-- Signal Visualizer -->
+    <div class="card">
+      <div class="card-title">EEG Signal Stream</div>
+      <canvas id="signalCanvas"></canvas>
+      <div class="controls">
+        <button class="btn btn-primary" id="btnSimulate" onclick="simulateSignal()">▶ SIMULATE SIGNAL</button>
+        <button class="btn btn-secondary" id="btnAuto" onclick="toggleAuto()">⟳ AUTO MODE</button>
+        <button class="btn btn-danger" onclick="clearLog()">✕ CLEAR LOG</button>
+        <span id="autoIndicator" class="auto-badge" style="display:none;">AUTO RUNNING</span>
+      </div>
+      <div class="slider-row">
+        <label>NOISE LEVEL</label>
+        <input type="range" id="noiseSlider" min="0" max="100" value="30" oninput="updateNoise(this)">
+        <span class="slider-val" id="noiseVal">0.3</span>
+      </div>
+    </div>
+
+    <!-- Detected Command -->
+    <div class="card">
+      <div class="card-title">Detected Mental Command</div>
+      <div class="command-display">
+        <div class="command-label">// CURRENT COMMAND</div>
+        <div class="command-name idle" id="commandName">STANDBY</div>
+        <div class="confidence-bar-wrap">
+          <div class="confidence-label">
+            <span>CONFIDENCE</span>
+            <span id="confPct">—</span>
+          </div>
+          <div class="confidence-bar">
+            <div class="confidence-fill" id="confFill"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Virtual cursor arena -->
+      <div class="cursor-arena" style="margin-top:14px;">
+        <div class="cursor-arena-label">// VIRTUAL CURSOR CONTROL</div>
+        <div class="cursor-target">SEL</div>
+        <div class="virtual-cursor" id="virtualCursor"></div>
+      </div>
+    </div>
+
+    <!-- Session Stats -->
+    <div class="card">
+      <div class="card-title">Session Statistics</div>
+      <div class="stats-grid">
+        <div class="stat-box">
+          <span class="stat-val" id="statTotal">0</span>
+          <span class="stat-label">Total Predictions</span>
+        </div>
+        <div class="stat-box">
+          <span class="stat-val" id="statAvgConf">—</span>
+          <span class="stat-label">Avg Confidence</span>
+        </div>
+        <div class="stat-box">
+          <span class="stat-val" id="statTopCmd">—</span>
+          <span class="stat-label">Top Command</span>
+        </div>
+        <div class="stat-box">
+          <span class="stat-val" id="statUptime">0s</span>
+          <span class="stat-label">Uptime</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Sidebar ── -->
+  <div class="sidebar">
+
+    <!-- Probability Breakdown -->
+    <div class="card">
+      <div class="card-title">Command Probabilities</div>
+      <div class="prob-grid" id="probGrid">
+        <div class="prob-row">
+          <span class="prob-name">IDLE</span>
+          <div class="prob-bar-bg"><div class="prob-bar-fill" id="pb-idle" style="width:25%;background:#3a6080;"></div></div>
+          <span class="prob-val" id="pv-idle">—</span>
+        </div>
+        <div class="prob-row">
+          <span class="prob-name">CURSOR LEFT</span>
+          <div class="prob-bar-bg"><div class="prob-bar-fill" id="pb-cursor_left" style="width:25%;background:#00d4ff;"></div></div>
+          <span class="prob-val" id="pv-cursor_left">—</span>
+        </div>
+        <div class="prob-row">
+          <span class="prob-name">CURSOR RIGHT</span>
+          <div class="prob-bar-bg"><div class="prob-bar-fill" id="pb-cursor_right" style="width:25%;background:#7b2fff;"></div></div>
+          <span class="prob-val" id="pv-cursor_right">—</span>
+        </div>
+        <div class="prob-row">
+          <span class="prob-name">SELECT</span>
+          <div class="prob-bar-bg"><div class="prob-bar-fill" id="pb-select" style="width:25%;background:#00ff88;"></div></div>
+          <span class="prob-val" id="pv-select">—</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Manual Command Trigger -->
+    <div class="card">
+      <div class="card-title">Manual Signal Injection</div>
+      <p style="font-family:var(--font-mono);font-size:.65rem;color:var(--muted);margin-bottom:4px;">
+        Force-simulate a specific mental command:
+      </p>
+      <div class="cmd-buttons">
+        <button class="cmd-btn" onclick="simulateCommand(0)">IDLE</button>
+        <button class="cmd-btn" onclick="simulateCommand(1)">CURSOR LEFT</button>
+        <button class="cmd-btn" onclick="simulateCommand(2)">CURSOR RIGHT</button>
+        <button class="cmd-btn" onclick="simulateCommand(3)">SELECT</button>
+      </div>
+    </div>
+
+    <!-- Prediction Log -->
+    <div class="card" style="flex:1;">
+      <div class="card-title">Prediction Log</div>
+      <div class="log-scroll" id="logScroll">
+        <div style="font-family:var(--font-mono);font-size:.65rem;color:var(--muted);text-align:center;padding:20px 0;">
+          Awaiting signal...
+        </div>
+      </div>
+    </div>
+
+    <!-- API Info -->
+    <div class="card">
+      <div class="card-title">System Info</div>
+      <div style="font-family:var(--font-mono);font-size:.65rem;color:var(--muted);line-height:2;">
+        <div>SAMPLE RATE &nbsp;<span style="color:var(--accent);">256 Hz</span></div>
+        <div>WINDOW &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:var(--accent);">1.0 sec / 256 samples</span></div>
+        <div>FEATURES &nbsp;&nbsp;&nbsp;<span style="color:var(--accent);">12 (5 band + 7 stat)</span></div>
+        <div>MODEL &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:var(--accent);" id="modelType">—</span></div>
+        <div>COMMANDS &nbsp;&nbsp;&nbsp;<span style="color:var(--accent);">4 (idle/L/R/select)</span></div>
+        <div class="glow-line"></div>
+        <div>API &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:var(--accent);">localhost:8000</span></div>
+      </div>
+    </div>
+
+  </div>
+
+</main>
+
+<footer>
+  NEURAX &nbsp;|&nbsp; BRAIN-COMPUTER INTERFACE SYSTEM &nbsp;|&nbsp; v1.0.0 &nbsp;|&nbsp; DEMO MODE
+</footer>
+
+<!-- ══ Script ══════════════════════════════════════════════════════════════ -->
+<script>
+const API = "http://localhost:8000";
+
+// ── State ──────────────────────────────────────────────────────────────────
+let isOnline = false;
+let autoMode = false;
+let autoTimer = null;
+let noiseLevel = 0.3;
+let sessionStart = Date.now();
+let totalPredictions = 0;
+let confScores = [];
+let commandCounts = {};
+let signalData = [];
+let animFrame = null;
+
+// ── Canvas setup ───────────────────────────────────────────────────────────
+const canvas = document.getElementById("signalCanvas");
+const ctx = canvas.getContext("2d");
+const DPR = window.devicePixelRatio || 1;
+
+function resizeCanvas() {
+  const rect = canvas.getBoundingClientRect();
+  canvas.width  = rect.width  * DPR;
+  canvas.height = rect.height * DPR;
+  ctx.scale(DPR, DPR);
+}
+resizeCanvas();
+window.addEventListener("resize", resizeCanvas);
+
+// ── Draw EEG waveform ──────────────────────────────────────────────────────
+function drawSignal(data) {
+  const w = canvas.getBoundingClientRect().width;
+  const h = canvas.getBoundingClientRect().height;
+  ctx.clearRect(0, 0, w, h);
+
+  if (!data || data.length === 0) {
+    ctx.fillStyle = "#1a3a50";
+    ctx.font = "12px 'Share Tech Mono'";
+    ctx.textAlign = "center";
+    ctx.fillText("NO SIGNAL — PRESS SIMULATE", w/2, h/2);
+    return;
+  }
+
+  // Grid
+  ctx.strokeStyle = "rgba(13,58,92,.5)";
+  ctx.lineWidth = 0.5;
+  for (let x = 0; x <= w; x += 40) {
+    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke();
+  }
+  for (let y = 0; y <= h; y += h/4) {
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
+  }
+
+  // Center line
+  ctx.strokeStyle = "rgba(0,212,255,.1)";
+  ctx.lineWidth = 1;
+  ctx.setLineDash([4, 4]);
+  ctx.beginPath(); ctx.moveTo(0, h/2); ctx.lineTo(w, h/2); ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Signal
+  const min = Math.min(...data);
+  const max = Math.max(...data);
+  const range = max - min || 1;
+  const pad = h * 0.1;
+
+  ctx.strokeStyle = "#00d4ff";
+  ctx.lineWidth = 1.5;
+  ctx.shadowBlur = 8;
+  ctx.shadowColor = "#00d4ff";
+  ctx.beginPath();
+  data.forEach((v, i) => {
+    const x = (i / (data.length - 1)) * w;
+    const y = pad + ((v - min) / range) * (h - 2 * pad);
+    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+  });
+  ctx.stroke();
+  ctx.shadowBlur = 0;
+}
+
+// Idle flicker animation
+function animateIdle() {
+  const w = canvas.getBoundingClientRect().width;
+  const h = canvas.getBoundingClientRect().height;
+  ctx.clearRect(0, 0, w, h);
+
+  // Draw tiny noise
+  let noise = [];
+  for (let i = 0; i < 256; i++) {
+    noise.push((Math.random() - .5) * .1);
+  }
+  drawSignal(noise);
+  animFrame = requestAnimationFrame(animateIdle);
+}
+
+// ── API calls ──────────────────────────────────────────────────────────────
+async function checkStatus() {
+  try {
+    const r = await fetch(`${API}/status`, { signal: AbortSignal.timeout(2000) });
+    if (r.ok) {
+      const d = await r.json();
+      setOnline(true);
+      document.getElementById("modelType").textContent = d.model_type || "—";
+      return d;
+    }
+  } catch {}
+  setOnline(false);
+}
+
+function setOnline(v) {
+  isOnline = v;
+  const el = document.getElementById("apiStatus");
+  const txt = document.getElementById("apiStatusText");
+  el.className = "status-pill " + (v ? "online" : "offline");
+  txt.textContent = v ? "API ONLINE" : "API OFFLINE";
+}
+
+async function simulateSignal(forceCmd = null) {
+  cancelAnimationFrame(animFrame);
+  const btn = document.getElementById("btnSimulate");
+  btn.disabled = true;
+  btn.textContent = "PROCESSING...";
+
+  const body = { noise_level: noiseLevel };
+  if (forceCmd !== null) body.command_id = forceCmd;
+
+  try {
+    const r = await fetch(`${API}/simulate`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+      signal: AbortSignal.timeout(5000),
+    });
+
+    if (!r.ok) throw new Error("API error");
+    const d = await r.json();
+
+    // Draw signal
+    drawSignal(d.full_signal || d.signal_preview);
+
+    // Update UI
+    updateCommandDisplay(d.prediction);
+    addLogEntry(d.prediction);
+    updateStats(d.prediction);
+
+    setOnline(true);
+  } catch (e) {
+    // Fallback: local demo mode
+    localDemoMode(forceCmd);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "▶ SIMULATE SIGNAL";
+  }
+}
+
+function simulateCommand(id) {
+  simulateSignal(id);
+  // Highlight button
+  document.querySelectorAll(".cmd-btn").forEach((b, i) => {
+    b.classList.toggle("active", i === id);
+  });
+  setTimeout(() => document.querySelectorAll(".cmd-btn").forEach(b => b.classList.remove("active")), 600);
+}
+
+// ── Local demo (no API needed) ─────────────────────────────────────────────
+function localDemoMode(forceCmd = null) {
+  const CMDS = ["idle", "cursor_left", "cursor_right", "select"];
+  const cmdId = forceCmd !== null ? forceCmd : Math.floor(Math.random() * 4);
+  const cmdName = CMDS[cmdId];
+
+  // Generate synthetic signal locally
+  const sig = generateLocalSignal(cmdId);
+  drawSignal(sig);
+
+  const proba = { idle: .05, cursor_left: .05, cursor_right: .05, select: .05 };
+  proba[cmdName] = .7 + Math.random() * .25;
+
+  // Normalize
+  const sum = Object.values(proba).reduce((a,b)=>a+b,0);
+  Object.keys(proba).forEach(k => proba[k] /= sum);
+
+  const prediction = {
+    command_id: cmdId,
+    command: cmdName,
+    confidence: proba[cmdName],
+    all_probabilities: proba,
+  };
+
+  updateCommandDisplay(prediction);
+  addLogEntry(prediction);
+  updateStats(prediction);
+  setOnline(false);
+}
+
+function generateLocalSignal(cmdId) {
+  const N = 256;
+  const t = Array.from({length: N}, (_, i) => i / 256);
+  let sig = t.map(() => 0);
+
+  const params = [
+    [[10,2],[11,1.5],[6,.5]],
+    [[10,.8],[20,1.8],[12,1.2]],
+    [[10,.7],[22,2.0],[15,1.0]],
+    [[5,1.5],[40,1.2],[8,1.0]],
+  ][cmdId];
+
+  params.forEach(([freq, amp]) => {
+    const phase = Math.random() * Math.PI * 2;
+    t.forEach((tv, i) => { sig[i] += amp * Math.sin(2 * Math.PI * freq * tv + phase); });
+  });
+
+  sig = sig.map(v => v + (Math.random() - .5) * noiseLevel * 3);
+  return sig;
+}
+
+// ── UI Updates ─────────────────────────────────────────────────────────────
+const CMD_COLORS = {
+  idle: "#3a6080",
+  cursor_left: "#00d4ff",
+  cursor_right: "#7b2fff",
+  select: "#00ff88",
+};
+
+function updateCommandDisplay(pred) {
+  const el = document.getElementById("commandName");
+  const name = pred.command || "idle";
+  const conf = pred.confidence || 0;
+
+  el.className = "command-name " + name;
+  el.textContent = name.replace("_", " ").toUpperCase();
+  el.classList.add("flash");
+  setTimeout(() => el.classList.remove("flash"), 500);
+
+  // Confidence bar
+  const pct = Math.round(conf * 100);
+  document.getElementById("confPct").textContent = pct + "%";
+  document.getElementById("confFill").style.width = pct + "%";
+
+  // Probability bars
+  const probs = pred.all_probabilities || {};
+  Object.keys(probs).forEach(cmd => {
+    const fill = document.getElementById("pb-" + cmd);
+    const val  = document.getElementById("pv-" + cmd);
+    if (fill && val) {
+      const p = Math.round(probs[cmd] * 100);
+      fill.style.width = p + "%";
+      fill.style.background = CMD_COLORS[cmd] || "#3a6080";
+      val.textContent = p + "%";
+      val.style.color = probs[cmd] > .5 ? CMD_COLORS[cmd] : "#3a6080";
+    }
+  });
+
+  // Move virtual cursor
+  moveCursor(name);
+}
+
+let cursorX = 50; // percent
+
+function moveCursor(cmd) {
+  const arena = document.querySelector(".cursor-arena");
+  const cursor = document.getElementById("virtualCursor");
+  const W = arena.offsetWidth;
+
+  if (cmd === "cursor_left")  cursorX = Math.max(5,  cursorX - 12);
+  if (cmd === "cursor_right") cursorX = Math.min(88, cursorX + 12);
+  if (cmd === "select")       { flashCursor(); }
+  if (cmd === "idle")         {} // no move
+
+  cursor.style.left = cursorX + "%";
+  cursor.style.top  = "50%";
+}
+
+function flashCursor() {
+  const c = document.getElementById("virtualCursor");
+  c.style.background = "#00ff88";
+  c.style.boxShadow  = "0 0 24px #00ff88, 0 0 60px rgba(0,255,136,.4)";
+  setTimeout(() => {
+    c.style.background = "var(--accent)";
+    c.style.boxShadow  = "0 0 16px var(--accent), 0 0 40px rgba(0,212,255,.3)";
+  }, 400);
+}
+
+function addLogEntry(pred) {
+  const log = document.getElementById("logScroll");
+  const time = new Date().toTimeString().slice(0, 8);
+  const cmd = pred.command;
+  const conf = Math.round((pred.confidence || 0) * 100);
+
+  // Remove placeholder
+  const placeholder = log.querySelector("div");
+  if (placeholder && placeholder.textContent.includes("Awaiting")) placeholder.remove();
+
+  const entry = document.createElement("div");
+  entry.className = "log-entry";
+  entry.innerHTML = `
+    <span class="log-time">${time}</span>
+    <span class="log-cmd ${cmd}">${cmd.replace("_"," ").toUpperCase()}</span>
+    <span class="log-conf">${conf}%</span>
+  `;
+  log.prepend(entry);
+
+  // Keep max 50 entries
+  while (log.children.length > 50) log.removeChild(log.lastChild);
+}
+
+function updateStats(pred) {
+  totalPredictions++;
+  confScores.push(pred.confidence || 0);
+  const cmd = pred.command;
+  commandCounts[cmd] = (commandCounts[cmd] || 0) + 1;
+
+  document.getElementById("statTotal").textContent = totalPredictions;
+
+  const avg = confScores.reduce((a,b)=>a+b,0) / confScores.length;
+  document.getElementById("statAvgConf").textContent = Math.round(avg * 100) + "%";
+
+  const top = Object.entries(commandCounts).sort((a,b)=>b[1]-a[1])[0];
+  document.getElementById("statTopCmd").textContent = top ? top[0].split("_")[1] || top[0] : "—";
+
+  const up = Math.round((Date.now() - sessionStart) / 1000);
+  document.getElementById("statUptime").textContent = up + "s";
+  document.getElementById("uptimeDisplay").textContent = "UPTIME: " + up + "s";
+}
+
+function toggleAuto() {
+  autoMode = !autoMode;
+  const btn = document.getElementById("btnAuto");
+  const badge = document.getElementById("autoIndicator");
+  btn.textContent = autoMode ? "⏸ STOP AUTO" : "⟳ AUTO MODE";
+  badge.style.display = autoMode ? "inline-flex" : "none";
+
+  if (autoMode) {
+    autoTimer = setInterval(() => simulateSignal(), 2000);
+  } else {
+    clearInterval(autoTimer);
+  }
+}
+
+function updateNoise(el) {
+  noiseLevel = el.value / 100;
+  document.getElementById("noiseVal").textContent = noiseLevel.toFixed(1);
+}
+
+function clearLog() {
+  const log = document.getElementById("logScroll");
+  log.innerHTML = `<div style="font-family:var(--font-mono);font-size:.65rem;color:var(--muted);text-align:center;padding:20px 0;">Log cleared.</div>`;
+  totalPredictions = 0;
+  confScores = [];
+  commandCounts = {};
+  document.getElementById("statTotal").textContent = "0";
+  document.getElementById("statAvgConf").textContent = "—";
+  document.getElementById("statTopCmd").textContent = "—";
+}
+
+// ── Init ───────────────────────────────────────────────────────────────────
+animateIdle();
+checkStatus();
+setInterval(checkStatus, 8000);
+setInterval(() => {
+  const up = Math.round((Date.now() - sessionStart) / 1000);
+  document.getElementById("statUptime").textContent = up + "s";
+  document.getElementById("uptimeDisplay").textContent = "UPTIME: " + up + "s";
+}, 1000);
+</script>
+</body>
+</html>
