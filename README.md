@@ -13,7 +13,7 @@ The dashboard works in two modes:
 - **With API running** — full pipeline (signal → preprocess → ML → predict)
 - **Without API** — local JS demo mode with synthetic signals (no setup needed)
 
-Open `frontend/index.html` in a browser to see the dashboard immediately.
+Open `index.html` in a browser to see the dashboard immediately.
 
 ---
 
@@ -85,7 +85,7 @@ uvicorn main:app --reload --host 0.0.0.0 --port 8000
 
 ### 4. Open the dashboard
 
-Open `frontend/index.html` in your browser. The dashboard connects to `localhost:8000` automatically.
+Open `index.html` in your browser. The dashboard connects to `localhost:8000` automatically.
 
 ---
 
